@@ -1,0 +1,78 @@
+name: WinHub Pro Max - Build System (Node 24)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: Build Sideloadable IPA
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Project Initializer
+        # এই অংশটি আপনার প্রোজেক্টের প্রয়োজনীয় ফোল্ডার ও ফাইল নিশ্চিত করবে
+        run: |
+          mkdir -p WinHub/Base.lproj
+          cat <<EOF > WinHub/Info.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleExecutable</key>
+            <string>WinHub</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.winhub.emulator</string>
+            <key>CFBundleName</key>
+            <string>WinHub</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>CFBundleVersion</key>
+            <string>1</string>
+            <key>UIFileSharingEnabled</key>
+            <true/>
+            <key>LSSupportsOpeningDocumentsInPlace</key>
+            <true/>
+            <key>UISupportedInterfaceOrientations</key>
+            <array>
+                <string>UIInterfaceOrientationLandscapeLeft</string>
+                <string>UIInterfaceOrientationLandscapeRight</string>
+            </array>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Xcode Build (No Signing)
+        run: |
+          mkdir -p build
+          xcodebuild archive \
+            -workspace WinHub.xcworkspace \
+            -scheme WinHub \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath $PWD/build/WinHub.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Create IPA Package
+        run: |
+          mkdir -p build/Payload
+          find build/WinHub.xcarchive/Products/Applications -name "*.app" -exec cp -r {} build/Payload/ \;
+          cd build
+          zip -qr WinHub_Final.ipa Payload
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WinHub-IPA-Package
+          path: build/WinHub_Final.ipa
