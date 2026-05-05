@@ -1,0 +1,11 @@
+{
+  "name": "win-hub-pro-max",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "build": "echo 'System Ready'"
+  }
+}
